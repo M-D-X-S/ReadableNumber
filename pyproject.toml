@@ -1,0 +1,8 @@
+[project]
+name = "readable_number"
+version = "0.1.0"
+description = "A Python library for human-readable number representation."
+dependencies = [
+    "matplotlib>=3.5.0",
+    "pillow>=9.0.0",
+]
