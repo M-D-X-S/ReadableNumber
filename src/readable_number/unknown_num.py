@@ -393,8 +393,6 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -415,8 +413,6 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -516,8 +512,6 @@ class UnknownNum(BasicClass):
             )
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_COPY_CR_DEPTH",
         )
@@ -622,8 +616,6 @@ class UnknownNum(BasicClass):
             return
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -692,8 +684,7 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `str()` instead",
+            "str()",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_REPR_CR_DEPTH",
         )
@@ -725,8 +716,7 @@ class UnknownNum(BasicClass):
                         unknown_num_show_mode=unknown_num_show_mode,
                         _circular_refs=_circular_refs,
                     )
-                else:
-                    return self.o_string
+                return self.o_string
 
     # def __repr__(self) -> str:
     #     return self.do_repr()
@@ -744,20 +734,15 @@ class UnknownNum(BasicClass):
         if not _force_do:
             assert self._force_do_hit_count == 0
             to_return, _circular_refs = self._circular_reference_dict(
-                "do not pass `_circular_refs` in wrong type "
-                "when calling this method, use `repr()` instead",
+                "repr()",
                 _circular_refs=_circular_refs,
                 constant_get_key="MAX_REPR_CR_DEPTH",
             )
             if to_return:
                 return "..."
-        elif self._force_do_hit_count > self._constants(
-            "MAX_FORCE_DO_HIT_COUNT", "<13"
-        ):
-            self._force_do_hit_count = 0
+
+        elif self._force_do_helper():
             return "..."
-        else:
-            self._force_do_hit_count += 1
 
         if self._value is None:
             return (
@@ -805,8 +790,6 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `latex()` instead",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_REPR_CR_DEPTH",
         )
@@ -839,8 +822,7 @@ class UnknownNum(BasicClass):
                         _circular_refs=_circular_refs,
                         **kwargs,
                     )
-                else:
-                    return self._latex
+                return self._latex
 
     # ====================
     # calculate
@@ -865,30 +847,25 @@ class UnknownNum(BasicClass):
         if not _force_do:
             assert self._force_do_hit_count == 0
             to_return, _circular_refs = self._circular_reference_dict(
-                "do not pass `_circular_refs` in wrong type "
-                "when calling this method, use `float()` instead",
+                "float()",
                 _circular_refs=_circular_refs,
                 constant_get_key="MAX_CALCULATION_CR_DEPTH",
             )
             if to_return:
                 return 1.0
-        elif self._force_do_hit_count > self._constants(
-            "MAX_FORCE_DO_HIT_COUNT", "<13"
-        ):
-            self._force_do_hit_count = 0
+
+        elif self._force_do_helper():
             return 1.0
-        else:
-            self._force_do_hit_count += 1
 
         if self._value is None:
             if unknown_num_use_default or _force_do:
                 return float(unknown_num_default)
-            else:
-                raise ValueError(
-                    f"Unknown number {self._label} has no value, "
-                    "and `unknown_num_use_default` is False. "
-                    "So it cannot be converted to float."
-                )
+
+            raise ValueError(
+                f"Unknown number {self._label} has no value, "
+                "and `unknown_num_use_default` is False. "
+                "So it cannot be converted to float."
+            )
 
         ret = self._value.do_float(
             _circular_refs=_circular_refs, _force_do=_force_do, **kwargs
@@ -914,8 +891,7 @@ class UnknownNum(BasicClass):
             )
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `abs()` instead",
+            "abs()",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -959,8 +935,7 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `+` instead",
+            "+",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1013,8 +988,7 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `*` instead",
+            "*",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1071,8 +1045,7 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1126,8 +1099,7 @@ class UnknownNum(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1250,8 +1222,7 @@ class UnknownNum(BasicClass):
             return False
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `==` instead",
+            "==",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_COMPARISON_CR_DEPTH",
         )
