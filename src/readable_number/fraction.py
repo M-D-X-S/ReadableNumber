@@ -284,8 +284,6 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -316,8 +314,6 @@ class Fraction(BasicClass):
             return
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -569,8 +565,6 @@ class Fraction(BasicClass):
             return Fraction(self._numerator, self._denominator, simplify=False)
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_COPY_CR_DEPTH",
         )
@@ -629,8 +623,6 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -654,8 +646,6 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return or self._numerator.value_eq(0) or not unknown_nums:
@@ -688,8 +678,6 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -716,8 +704,6 @@ class Fraction(BasicClass):
             return
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -744,8 +730,7 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `str()` instead",
+            "str()",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_REPR_CR_DEPTH",
         )
@@ -808,20 +793,15 @@ class Fraction(BasicClass):
         if not _force_do:
             assert self._force_do_hit_count == 0
             to_return, _circular_refs = self._circular_reference_dict(
-                "do not pass `_circular_refs` in wrong type "
-                "when calling this method, use `repr()` instead",
+                "repr()",
                 _circular_refs=_circular_refs,
                 constant_get_key="MAX_REPR_CR_DEPTH",
             )
             if to_return:
                 return "..."
-        elif self._force_do_hit_count > self._constants(
-            "MAX_FORCE_DO_HIT_COUNT", "<13"
-        ):
-            self._force_do_hit_count = 0
+
+        elif self._force_do_helper():
             return "..."
-        else:
-            self._force_do_hit_count += 1
 
         if self is not self._numerator:
             numerator = self._numerator.do_repr(
@@ -876,8 +856,6 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_REPR_CR_DEPTH",
         )
@@ -973,20 +951,15 @@ class Fraction(BasicClass):
         if not _force_do:
             assert self._force_do_hit_count == 0
             to_return, _circular_refs = self._circular_reference_dict(
-                "do not pass `_circular_refs` in wrong type "
-                "when calling this method, use `float()` instead",
+                "float()",
                 _circular_refs=_circular_refs,
                 constant_get_key="MAX_CALCULATION_CR_DEPTH",
             )
             if to_return:
                 return 1.0
-        elif self._force_do_hit_count > self._constants(
-            "MAX_FORCE_DO_HIT_COUNT", "<13"
-        ):
-            self._force_do_hit_count = 0
+
+        elif self._force_do_helper():
             return 1.0
-        else:
-            self._force_do_hit_count += 1
 
         numerator = self._numerator.do_float(
             _circular_refs=_circular_refs,
@@ -1012,8 +985,7 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `abs()` instead",
+            "abs()",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1051,8 +1023,7 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `+` instead",
+            "+",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1163,8 +1134,7 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `*` instead",
+            "*",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1258,8 +1228,7 @@ class Fraction(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1476,8 +1445,7 @@ class Fraction(BasicClass):
             return False
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `==` instead",
+            "==",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_COMPARISON_CR_DEPTH",
         )

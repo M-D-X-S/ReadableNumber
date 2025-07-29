@@ -1,6 +1,7 @@
 __pycache__/
 
 .venv/
+.vscode/
 
 htmlcov/
 .coverage
@@ -8,3 +9,5 @@ htmlcov/
 *_test/
 *_test
 tester_main.*
+
+pylint.txt

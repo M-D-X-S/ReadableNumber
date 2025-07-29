@@ -7,10 +7,11 @@ form.
 """
 
 from . import constants
+from .basic_class import OrderMode
 from .fraction import Fraction, LatexMode
 from .integer import Integer
-from .monomial import Monomial, OrderMode
-from .multinomial import Multinomial  # , OrderMode
+from .monomial import Monomial
+from .multinomial import Multinomial
 from .power import Power
 from .unknown_num import UnknownNum, UnknownShowMode
 

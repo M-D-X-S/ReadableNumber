@@ -5,6 +5,7 @@ The definition of basic class of the child classes.
 """
 
 from abc import ABC, ABCMeta, abstractmethod
+from enum import StrEnum, auto
 from hashlib import sha256
 from itertools import tee
 from typing import (
@@ -13,13 +14,13 @@ from typing import (
     Generator,
     Iterable,
     Optional,
+    Self,
     Sequence,
     Union,
 )
 
 from . import constants
 from ._error_helper import (
-    assert_fail,
     invalid_type,
     invalid_value,
     not_implemented,
@@ -724,7 +725,7 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
 
     def _circular_reference_set(
         self,
-        more_msg: str,
+        instead: str = "",
         *,
         _circular_refs: Optional[set["BasicClass"]] = None,
     ) -> tuple[bool, set["BasicClass"]]:
@@ -739,6 +740,12 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
                 circular reference set, and the updated circular
                 reference set.
         """
+
+        more_msg = (
+            "do not pass `_circular_refs` in wrong type "
+            "when calling this method"
+            + (f", use `{instead}` instead" if instead else "")
+        )
 
         if _circular_refs is None:
             _circular_refs = set()
@@ -760,7 +767,7 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
 
     def _circular_reference_dict(
         self,
-        more_msg: str,
+        instead: str = "",
         *,
         _circular_refs: Optional[dict["BasicClass", int]] = None,
         constant_get_key: str,
@@ -776,6 +783,12 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
                 circular reference dict, and the updated circular
                 reference dict.
         """
+
+        more_msg = (
+            "do not pass `_circular_refs` in wrong type "
+            "when calling this method"
+            + (f", use `{instead}` instead" if instead else "")
+        )
 
         if _circular_refs is None:
             _circular_refs = {}
@@ -796,34 +809,6 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
             return True, _circular_refs
         _circular_refs[self] = _circular_refs.get(self, 0) + 1
         return False, _circular_refs
-
-    @staticmethod
-    def _get_int_factors(num: int) -> Generator["BasicClass", None, None]:
-        """
-        A helper function to get the factors of an integer.
-
-        Args:
-            num (int)
-
-        Yields:
-            Generator[Integer, None, None]: The factors of the integer.
-        """
-
-        assert isinstance(num, int), assert_fail(
-            invalid_type, "num", num, expected=int
-        )
-
-        from .integer import Integer
-
-        if num == 0:
-            return
-        if num < 0:
-            yield Integer(-1)
-            num = -num
-
-        for i in range(1, num + 1):
-            if num % i == 0:
-                yield Integer(i)
 
     @classmethod
     def _constants(
@@ -881,30 +866,28 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
             if value <= num:
                 raise ValueError(f"The value of {key} is not valid.")
             return value
-        elif valid_function.startswith("<"):
+        if valid_function.startswith("<"):
             num = int(valid_function[1:])
             if value >= num:
                 raise ValueError(f"The value of {key} is not valid.")
             return value
-        elif valid_function.startswith("=="):
+        if valid_function.startswith("=="):
             num = int(valid_function[2:-1])
             if value != num:
                 raise ValueError(f"The value of {key} is not valid.")
             return value
-        elif valid_function == "bool":
+        if valid_function == "bool":
             try:
                 return bool(value)
             except ValueError as e:
                 raise ValueError(f"The value of {key} is not valid.") from e
-        elif valid_function == "int":
+        if valid_function == "int":
             try:
                 return int(value)
             except ValueError as e:
                 raise ValueError(f"The value of {key} is not valid.") from e
-        else:
-            raise ValueError(
-                f"The valid_function {valid_function} is not valid."
-            )
+
+        raise ValueError(f"The valid_function {valid_function} is not valid.")
 
     @staticmethod
     def get_intersection_by_value(
@@ -1012,6 +995,44 @@ class BasicClass(ABC, metaclass=IsinstanceChecker):
             case other:
                 return self
 
+    def _force_do_helper(self) -> bool:
+        """
+        A helper function to force do.
+        Will set the `_force_do_hit_count`.
+
+        Returns:
+            bool: Whether to return.
+        """
+
+        if self._force_do_hit_count > self._constants(
+            "MAX_FORCE_DO_HIT_COUNT", "<13"
+        ):
+            self._force_do_hit_count = 0
+            return True
+
+        self._force_do_hit_count += 1
+        return False
+
+
+NewTypes = BasicClass
+ItemsSupportsTypes = Iterable[CalculationSupportsTypes]
+PropertyTypes = list[NewTypes]
+
+
+class OrderMode(StrEnum):
+    """
+    The order mode of the monomial.
+    """
+
+    # NOTE: The order of the following enums is the default order.
+
+    INTEGER = auto()
+    MULTINOMIAL = auto()
+    POWER = auto()
+    FRACTION = auto()
+    MONOMIAL = auto()
+    UNKNOWN_NUM = auto()
+
 
 class Container(BasicClass, ABC, metaclass=IsinstanceChecker):
     """
@@ -1022,68 +1043,833 @@ class Container(BasicClass, ABC, metaclass=IsinstanceChecker):
         of the items in the container.
     """
 
-    @abstractmethod
+    # Whether to simplify the Multinomial after calculation.
+    simplify_after_calculation = False
+
+    # Whether the separator is between the space.
+    # If True, the separator is " + " or " * ",
+    # if False, the separator is "+" or "*".
+    use_space_separator = False
+
+    # Whether to optimize the recursive representation of the multinomial.
+    # For example, if a power is represented as `(...)+(...)+(...)`,
+    # it will be optimized to `...` if this attribute is True.
+    # Also, if `0` is in the string representation,
+    # it will be skipped if this attribute is True.
+    # e.g. `0+0+0` -> `0`
+    optimize_recursive_repr = False
+
+    # ====================
+    # initialization
+    # ====================
+
+    def __init__(
+        self,
+        items: ItemsSupportsTypes,
+        *,
+        simplify: bool = True,
+        order_mode: Union[list[OrderMode], tuple[OrderMode, ...]] = tuple(
+            OrderMode
+        ),
+    ) -> None:
+        """
+        The initialization of the Multinomial class.
+
+        The argument `order_mode` is a list or tuple of `OrderMode`.
+        It specifies the order of the items in the string
+        representation of the Multinomial object.
+        For example, by default, the order is
+        (Integer, Multinomial, Power, Fraction, Monomial, UnknownNum)
+        which means the items will be sorted in the order
+        of `Integer`, `Multinomial`, `Power`, `Fraction`,
+        `Monomial` and `UnknownNum`.
+
+        Args:
+            items (ItemsSupportsTypes): The items of the multinomial.
+            simplify (bool, optional):
+                Whether to simplify the multinomial after initialization.
+                Defaults to True.
+            order_mode
+            (Union[list[OrderMode], tuple[OrderMode, ...]], optional):
+                The order mode of the multinomial.
+
+        Raises:
+            FROM `_init_args_handler`:
+                TypeError: When the items is not a list or tuple.
+                TypeError: When the item in the items
+                    is not a CalculationSupportsTypes.
+        """
+
+        if items is None:
+            raise TypeError(invalid_value("items", items, expected="not None"))
+
+        items_, order_mode = self._init_args_handler(items, order_mode)
+
+        self._items = [item.copy(try_deep_copy=True) for item in items_]
+        self._order_mode = order_mode
+
+        self._force_do_hit_count = 0
+
+        self._order_items()
+
+        if simplify:
+            self.simplify()
+
+    @property
+    def items(self) -> Viewer:
+        """
+        Returns a viewer of the items of the multinomial.
+        """
+        return Viewer(self._items)
+
+    @property
+    def order_mode(self) -> tuple[OrderMode, ...]:
+        """
+        Returns the order mode of the multinomial.
+        """
+        return self._order_mode
+
+    @order_mode.setter
+    def order_mode(
+        self, value: Union[list[OrderMode], tuple[OrderMode, ...]]
+    ) -> None:
+        """
+        Sets the order mode of the multinomial.
+        """
+        _, self._order_mode = self._init_args_handler(None, value)
+
+    def _order_items(self) -> None:
+        """
+        Orders the items of the multinomial.
+        """
+
+        from .fraction import Fraction
+        from .integer import Integer
+        from .monomial import Monomial
+        from .multinomial import Multinomial
+        from .power import Power
+        from .unknown_num import UnknownNum
+
+        mapping = {
+            Fraction: OrderMode.FRACTION,
+            Integer: OrderMode.INTEGER,
+            Monomial: OrderMode.MONOMIAL,
+            Multinomial: OrderMode.MULTINOMIAL,
+            Power: OrderMode.POWER,
+            UnknownNum: OrderMode.UNKNOWN_NUM,
+        }
+
+        def get_key(item: NewTypes) -> tuple[int, float]:
+            index = self._order_mode.index(mapping[type(item)])
+            return (index, item.do_float(unknown_num_use_default=True))
+
+        self._items.sort(key=get_key)
+
+    def _init_args_handler(
+        self,
+        items: Optional[ItemsSupportsTypes],
+        order_mode: Union[list[OrderMode], tuple[OrderMode, ...]],
+    ) -> tuple[PropertyTypes, tuple[OrderMode, ...]]:
+        """
+        A helper function to handle the arguments.
+
+        Args:
+            items (Optional[ItemsSupportsTypes])
+            order_mode (Union[list[OrderMode], tuple[OrderMode, ...]])
+
+        Raises:
+            TypeError: When the items is not a list or tuple.
+            TypeError: When the item in the items
+                is not a CalculationSupportsTypes.
+
+        Returns:
+            tuple[PropertyTypes, tuple[OrderMode, ...]]:
+                The items of the multinomial.
+        """
+
+        if items is None:
+            items = []
+        if not isinstance(items, (list, tuple)):
+            raise TypeError(
+                invalid_type("items", items, expected=(list, tuple))
+            )
+
+        from .integer import Integer
+
+        res_items = []
+        for item in items:
+            if not isinstance(item, Union[int, float, BasicClass]):
+                raise TypeError(
+                    invalid_type(
+                        "items", item, expected=Union[int, float, BasicClass]
+                    )
+                )
+            if isinstance(item, float):
+                from .fraction import Fraction
+
+                item = Fraction.from_float(item)
+            if isinstance(item, int):
+                item = Integer(item)
+            res_items.append(item.copy(try_deep_copy=True))
+
+        if len(order_mode) > len(
+            OrderMode
+        ):  # or len(set(order_mode)) != len(order_mode)
+            raise ValueError(
+                invalid_value(
+                    "order_mode", order_mode, more_msg="contains duplicates"
+                )
+            )
+
+        res_order = []
+
+        for order in order_mode:
+            if not isinstance(order, OrderMode):
+                raise TypeError(
+                    invalid_type("order_mode", order, expected=OrderMode)
+                )
+            if order in res_order:
+                raise ValueError(
+                    invalid_value(
+                        "order_mode",
+                        order_mode,
+                        more_msg="contains duplicates",
+                    )
+                )
+            res_order.append(order)
+
+        for member in OrderMode:
+            if member not in res_order:
+                res_order.append(member)
+
+        return res_items, tuple(res_order)
+
+    # ====================
+    # public methods
+    # ====================
+
     def __len__(self) -> int:
         """
-        Returns the length of the container.
+        Returns the length of items in the multinomial.
         """
+        return len(self._items)
 
-    @abstractmethod
-    def __getitem__(self, key: int) -> Viewer:
+    def __getitem__(self, index: Union[int, slice]) -> Viewer:
         """
-        Returns the item at the given index.
+        Returns a viewer of the items of the multinomial.
         """
+        return Viewer(self._items[index])
 
-    @abstractmethod
-    def __setitem__(self, key: Union[int, slice], value: Any) -> None:
+    def __setitem__(
+        self,
+        index: Union[int, slice],
+        value: Union[CalculationSupportsTypes, ItemsSupportsTypes],
+    ) -> None:
         """
         Sets the item at the given index to the given value.
         """
 
-    @abstractmethod
-    def __delitem__(self, key: Union[int, slice]) -> None:
-        """
-        Deletes the item at the given index.
-        """
+        from .integer import Integer
 
-    @abstractmethod
+        if isinstance(index, int):
+            if not isinstance(value, Union[int, float, BasicClass]):
+                raise TypeError(
+                    invalid_type(
+                        "value", value, expected=Union[int, float, BasicClass]
+                    )
+                )
+            if isinstance(value, float):
+                from .fraction import Fraction
+
+                value = Fraction.from_float(value)
+            if isinstance(value, int):
+                value = Integer(value)
+            self._items[index] = value.copy(try_deep_copy=True)
+
+        elif isinstance(index, slice):
+            if not isinstance(value, (list, tuple)):
+                raise TypeError(
+                    invalid_type("value", value, expected=(list, tuple))
+                )
+
+            res = []
+            for item in value:
+                if not isinstance(item, Union[int, float, BasicClass]):
+                    raise TypeError(
+                        invalid_type(
+                            "value",
+                            item,
+                            expected=Union[int, float, BasicClass],
+                        )
+                    )
+                if isinstance(item, float):
+                    from .fraction import Fraction
+
+                    item = Fraction.from_float(item)
+                if isinstance(item, int):
+                    item = Integer(item)
+                res.append(item.copy(try_deep_copy=True))
+
+            self._items[index] = res
+
+        else:
+            raise TypeError(
+                invalid_type("index", index, expected=(int, slice))
+            )
+
+    def __delitem__(self, index: Union[int, slice]) -> None:
+        """
+        Deletes the items of the multinomial.
+        """
+        del self._items[index]
+
     def __iter__(self) -> Generator[Viewer, None, None]:
         """
-        Returns a generator of the items in the container.
+        Returns a generator of the items of the multinomial.
         """
+        for item in self._items:
+            yield Viewer(item.copy(try_deep_copy=True))
 
-    @abstractmethod
     def __contains__(self, item: Any) -> bool:
         """
-        Checks if the container contains the given item.
+        Returns whether the item is in the multinomial.
+        """
+        return item in self._items
+
+    def append(self, item: CalculationSupportsTypes) -> None:
+        """
+        Appends the item to the end of the multinomial.
         """
 
-    @abstractmethod
-    def append(self, item: Any) -> None:
+        if not isinstance(item, Union[int, float, BasicClass]):
+            raise TypeError(
+                invalid_type(
+                    "item", item, expected=Union[int, float, BasicClass]
+                )
+            )
+
+        from .integer import Integer
+
+        if isinstance(item, float):
+            from .fraction import Fraction
+
+            item = Fraction.from_float(item)
+        if isinstance(item, int):
+            item = Integer(item)
+        self._items.append(item.copy(try_deep_copy=True))
+
+    def extend(self, items: ItemsSupportsTypes) -> None:
         """
-        Appends the given item to the end of the container.
+        Extends the multinomial by appending the items from the iterable.
         """
 
-    @abstractmethod
-    def extend(self, items: list) -> None:
-        """
-        Extends the container with the given items.
-        """
+        if not isinstance(items, (list, tuple)):
+            raise TypeError(
+                invalid_type("items", items, expected=(list, tuple))
+            )
 
-    @abstractmethod
-    def remove(self, item: Any) -> None:
-        """
-        Removes the first occurrence of the given item from the container.
-        """
+        from .integer import Integer
 
-    @abstractmethod
+        for item in items:
+            if not isinstance(item, Union[int, float, BasicClass]):
+                raise TypeError(
+                    invalid_type(
+                        "items", item, expected=Union[int, float, BasicClass]
+                    )
+                )
+            if isinstance(item, float):
+                from .fraction import Fraction
+
+                item = Fraction.from_float(item)
+            if isinstance(item, int):
+                item = Integer(item)
+            self._items.append(item.copy(try_deep_copy=True))
+
+    def remove(self, item: NewTypes) -> None:
+        """
+        Removes the first occurrence of the item in the multinomial.
+        """
+        self._items.remove(item)
+
     def clear(self) -> None:
         """
-        Removes all items from the container.
+        Removes all items from the multinomial.
+        """
+        self._items.clear()
+
+    def count(self, item: NewTypes) -> int:
+        """
+        Returns the number of occurrences of the item in the multinomial.
+        """
+        return self._items.count(item)
+
+    def _simplify(
+        self,
+        _circular_refs: Optional[set[NewTypes]] = None,
+        *,
+        optimize_mapping: Optional[
+            dict[type[NewTypes], Callable[[NewTypes], list[NewTypes]]]
+        ] = None,
+    ) -> None:
+        """
+        A helper function to simplify the Container object.
+
+        `optimize_mapping` is a dictionary that maps the type of the object
+        to a function that returns the simplified object.
+        If it is None, it will use the default mapping:
+        {type(self): (lambda _: self._items)}
+
+        Will do `res.extend(optimize_func(item))`
         """
 
-    @abstractmethod
-    def count(self, item: Any) -> int:
+        to_return, _circular_refs = self._circular_reference_set(
+            _circular_refs=_circular_refs,
+        )
+        if to_return:
+            return
+
+        if optimize_mapping is None:
+            optimize_mapping = {type(self): (lambda _: self._items)}
+        if not isinstance(optimize_mapping, dict):
+            raise TypeError(
+                invalid_type(
+                    "optimize_mapping",
+                    optimize_mapping,
+                    expected=dict,
+                )
+            )
+
+        # This method is needless to copy the items,
+        # because the items are already copied in the constructor.
+        # So we can directly use the original items.
+
+        res1: list[NewTypes] = []
+        for index, item1 in enumerate(self._items):
+            for item2 in self._items[index + 1 :]:
+                if isinstance(item1, NewTypes):
+                    item1.simplify(_circular_refs)
+                if isinstance(item2, NewTypes):
+                    item2.simplify(_circular_refs)
+
+                add_res = item1 + item2
+                if not isinstance(add_res, type(self)):
+                    res1.append(add_res)
+                else:
+                    res1.extend((item1, item2))
+
+        # optimization
+        res2 = []
+
+        for item in res1:
+            if type(item) in optimize_mapping:
+                res2.extend(optimize_mapping[type(item)](item))
+            else:
+                res2.append(item)
+
+        self._items = res2
+        self._order_items()
+
+    # ====================
+    # Supports for UnknownNum
+    # ====================
+
+    def get_unknowns(
+        self,
+        _circular_refs: Optional[set[NewTypes]] = None,
+    ) -> set[NewTypes]:
         """
-        Returns the number of occurrences of the given item in the container.
+        Returns the UnknownNum objects in the container.
         """
+
+        to_return, _circular_refs = self._circular_reference_set(
+            _circular_refs=_circular_refs,
+        )
+        if to_return:
+            return set()
+
+        res = set()
+
+        for item in self._items:
+            res.update(item.get_unknowns(_circular_refs=_circular_refs))
+
+        return res
+
+    def get_coefficient_of_unknowns(
+        self,
+        unknown_nums: Sequence[Union[NewTypes, str]],
+        _do_simplify: bool = True,
+        _circular_refs: Optional[set[NewTypes]] = None,
+    ) -> list[NewTypes]:
+        """
+        Returns the coefficients of the UnknownNum objects in the container.
+        If the object does not contain the UnknownNum object,
+        the coefficient will be 0.
+        NOTE: Now only support simple equation.
+        """
+
+        from .integer import Integer
+
+        to_return, _circular_refs = self._circular_reference_set(
+            _circular_refs=_circular_refs,
+        )
+        if to_return or not unknown_nums:
+            return [Integer(0)] * len(unknown_nums)
+
+        from .unknown_num import UnknownNum
+
+        self._order_items()
+        res = []
+
+        for unknown_num in unknown_nums:
+            if not isinstance(unknown_num, (UnknownNum, str)):
+                raise TypeError(
+                    invalid_type(
+                        "unknown_num",
+                        unknown_num,
+                        expected=(UnknownNum, str),
+                    )
+                )
+
+            buff = []
+            for item in self._items:
+                item_coef = item.get_coefficient_of_unknowns(
+                    [unknown_num], False, _circular_refs=_circular_refs
+                )[0]
+                if isinstance(item_coef, Integer) and item_coef.value_eq(0):
+                    continue
+
+                buff.append(item_coef)
+
+            if buff:
+                res.append(type(self)(buff, simplify=_do_simplify))
+            else:
+                res.append(Integer(0))
+
+        return res
+
+    def contain_unknown_num(
+        self, _circular_refs: Optional[set[NewTypes]] = None
+    ) -> bool:
+        """
+        Returns True if the object contains an unknown number,
+        otherwise False.
+        """
+
+        to_return, _circular_refs = self._circular_reference_set(
+            _circular_refs=_circular_refs,
+        )
+        if to_return:
+            return False
+
+        return any(
+            item.contain_unknown_num(_circular_refs) for item in self._items
+        )
+
+    def set_values(
+        self,
+        values: Optional[
+            dict[Union[NewTypes, str], Optional[CalculationSupportsTypes]]
+        ] = None,
+        _circular_refs: Optional[set[NewTypes]] = None,
+    ) -> None:
+        """
+        Sets the values of the UnknownNum object.
+        """
+
+        if values is None or not values:
+            return
+
+        to_return, _circular_refs = self._circular_reference_set(
+            _circular_refs=_circular_refs,
+        )
+        if to_return:
+            return
+
+        for item in self._items:
+            item.set_values(values, _circular_refs=_circular_refs)
+
+    def copy(
+        self,
+        *,
+        copy_unknown_num: bool = False,
+        try_deep_copy: bool = False,
+        force_deep_copy: bool = False,
+        _circular_refs: Optional[dict[NewTypes, int]] = None,
+    ) -> Self:
+        """
+        Creates a copy of the Container object.
+        The parameter `force_deep_copy` is only effective when
+        `try_deep_copy` is True.
+        When doing a try_deep_copy, if the object's circular reference
+        times is greater than the constant MAX_COPY_CR_DEPTH,
+        it will return the object itself as the result.
+        When doning a force_deep_copy, it will always try to use deepcopy
+        to create a copy, until it causes ``RecursionError``,
+        and then return the object itself.
+
+        Args:
+            copy_unknown_num (bool, optional):
+                Whether to copy the UnknownNum object.
+                Defaults to False.
+            try_deep_copy (bool, optional):
+                Whether to try to use deepcopy to create a copy.
+                Defaults to False.
+            force_deep_copy (bool, optional):
+                Only effective when try_deep_copy is True.
+                Whether to force to use deepcopy to create a copy.
+                Defaults to False.
+            _circular_refs (Optional[dict[NewTypes, int]], optional):
+                A dictionary to keep track of circular references.
+                Defaults to None.
+
+        Returns:
+            Container: The copy of the Container object.
+        """
+
+        if not try_deep_copy:
+            return type(self)(tuple(self._items), simplify=False)
+
+        to_return, _circular_refs = self._circular_reference_dict(
+            _circular_refs=_circular_refs,
+            constant_get_key="MAX_COPY_CR_DEPTH",
+        )
+        if to_return:
+            return self
+
+        # try_deep_copy=True
+        from .unknown_num import UnknownNum
+
+        items = []
+        for item in self._items:
+            if not isinstance(item, UnknownNum) or copy_unknown_num:
+                if force_deep_copy:
+                    try:
+                        # do forced deep copy by not passing _circular_refs
+                        item = item.copy(
+                            try_deep_copy=True,
+                            force_deep_copy=True,
+                        )
+                    except RecursionError:
+                        return self
+                else:
+                    item = item.copy(
+                        try_deep_copy=True,
+                        force_deep_copy=False,
+                        _circular_refs=_circular_refs,
+                    )
+            items.append(item)
+
+        return type(self)(items, simplify=False)
+
+    # ====================
+    # calculate
+    # ====================
+
+    def _do_abs_helper(
+        self,
+        *,
+        _circular_refs: Optional[dict[NewTypes, int]] = None,
+    ) -> Optional[Self]:
+        """
+        A helper function to calculate the absolute value of
+        a Container object.
+
+        NOTE: The res will not be copied.
+
+        If `to_return` is True, it will return None,
+        then you should return the default value.
+
+        Returns:
+            Optional[Container]: The absolute value of the Container object.
+        """
+
+        to_return, _circular_refs = self._circular_reference_dict(
+            "abs()",
+            _circular_refs=_circular_refs,
+            constant_get_key="MAX_CALCULATION_CR_DEPTH",
+        )
+        if to_return:
+            return None
+
+        items = [
+            item.do_abs(_circular_refs=_circular_refs) for item in self._items
+        ]
+
+        return type(self)(items)
+
+    def _do_truediv_helper(
+        self,
+        other: CalculationSupportsTypes,
+        *,
+        _circular_refs: Optional[dict[NewTypes, int]] = None,
+    ) -> Optional[NewTypes]:
+        """
+        A helper function to divide a Container object and
+        an anothor object that be supported by calculation.
+
+        NOTE: The res will not be copied.
+
+        If `to_return` is True, it will return None,
+        then you should return the default value.
+
+        Raises:
+            TypeError: When the other is not supported by calculation.
+
+        Returns:
+            Optional[Fraction]: The result of the division.
+        """
+
+        to_return, _circular_refs = self._circular_reference_dict(
+            "/",
+            _circular_refs=_circular_refs,
+            constant_get_key="MAX_CALCULATION_CR_DEPTH",
+        )
+        if to_return:
+            return None
+
+        if not isinstance(other, CalculationSupportsTypes):
+            raise TypeError(
+                invalid_type(
+                    "other",
+                    other,
+                    more_msg=f"when dividing a {type(self).__name__} object",
+                    expected=CalculationSupportsTypes,
+                )
+            )
+
+        from .fraction import Fraction
+
+        return Fraction(self, other, simplify=self.simplify_after_calculation)
+
+    def _do_rtruediv_helper(
+        self,
+        other: CalculationSupportsTypes,
+        *,
+        _circular_refs: Optional[dict[NewTypes, int]] = None,
+    ) -> Optional[NewTypes]:
+        """
+        A helper function to divide an anothor object and
+        a Container object that be supported by calculation.
+
+        NOTE: This function depends on the `do_truediv_helper` function.
+
+        If `to_return` is True, it will return None,
+        then you should return the default value.
+
+        Returns:
+            Optimal[Fraction]: The result of the division.
+        """
+
+        from .fraction import Fraction
+
+        res = self._do_truediv_helper(other, _circular_refs=_circular_refs)
+        if isinstance(res, Fraction):
+            res.self_reciprocal()
+            return res
+
+        assert res is None
+        return res
+
+    def __pow__(self, other: CalculationSupportsTypes) -> NewTypes:
+        """
+        Raises a Container object to the power of the other object.
+
+        Args:
+            other (CalculationSupportsTypes): The exponent to which
+                the Container object is raised.
+
+        Raises:
+            TypeError: When the other is not supported by calculation.
+
+        Returns:
+            Power: The result of raising the Container object to
+                the power of the other object.
+        """
+
+        if not isinstance(other, CalculationSupportsTypes):
+            raise TypeError(
+                invalid_type(
+                    "other",
+                    other,
+                    more_msg=f"when raising a {type(self).__name__} object",
+                    expected=CalculationSupportsTypes,
+                )
+            )
+
+        from .power import Power
+
+        return Power(
+            self, other, simplify=self.simplify_after_calculation
+        ).copy(try_deep_copy=True)
+
+    def __rpow__(self, other: CalculationSupportsTypes) -> NewTypes:
+        """
+        Raises an object to the power of a Container object.
+
+        Args:
+            other (CalculationSupportsTypes): The base to which
+                the Container object is raised.
+
+        Raises:
+            TypeError: When the other is not supported by calculation.
+
+        Returns:
+            Power: The result of raising the other object to
+                the power of the Container object.
+        """
+
+        if not isinstance(other, CalculationSupportsTypes):
+            raise TypeError(
+                invalid_type(
+                    "other",
+                    other,
+                    more_msg=f"when raising an {type(self).__name__} object",
+                    expected=CalculationSupportsTypes,
+                )
+            )
+
+        from .power import Power
+
+        return Power(
+            other, self, simplify=self.simplify_after_calculation
+        ).copy(try_deep_copy=True)
+
+    # ====================
+    # check
+    # ====================
+
+    def do_exactly_eq(
+        self,
+        other: object,
+        *,
+        _circular_refs: Optional[dict[NewTypes, int]] = None,
+    ) -> bool:
+        """
+        Checks if the Monomial objects are exactly equal to the other object,
+        which means they have the same items.
+
+        Args:
+            other (object): The object to be compared with.
+            _circular_refs (Optional[dict[NewTypes, int]], optional):
+                A dictionary to keep track of circular references.
+                Defaults to None.
+
+        Returns:
+            bool: True if the two objects are exactly equal, False otherwise.
+        """
+
+        if not isinstance(other, type(self)):
+            return False
+
+        to_return, _circular_refs = self._circular_reference_dict(
+            _circular_refs=_circular_refs,
+            constant_get_key="MAX_COMPARISON_CR_DEPTH",
+        )
+        if to_return:
+            return True
+
+        return self._items == other._items
+
+    def __hash__(self) -> int:
+        self._order_items()
+        return self._get_hash()

@@ -259,8 +259,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if (
@@ -305,8 +303,6 @@ class Power(BasicClass):
             return
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -512,8 +508,6 @@ class Power(BasicClass):
             return Power(self._base, self._exponent, simplify=False)
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_COPY_CR_DEPTH",
         )
@@ -572,8 +566,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -597,8 +589,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -633,8 +623,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -659,8 +647,6 @@ class Power(BasicClass):
             return
 
         to_return, _circular_refs = self._circular_reference_set(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
         )
         if to_return:
@@ -691,8 +677,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_REPR_CR_DEPTH",
         )
@@ -838,20 +822,14 @@ class Power(BasicClass):
         if not _force_do:
             assert self._force_do_hit_count == 0
             to_return, _circular_refs = self._circular_reference_dict(
-                "do not pass `_circular_refs` in wrong type "
-                "when calling this method",
                 _circular_refs=_circular_refs,
                 constant_get_key="MAX_REPR_CR_DEPTH",
             )
             if to_return:
                 return "..."
-        elif self._force_do_hit_count > self._constants(
-            "MAX_FORCE_DO_HIT_COUNT", "<13"
-        ):
-            self._force_do_hit_count = 0
+
+        elif self._force_do_helper():
             return "..."
-        else:
-            self._force_do_hit_count += 1
 
         base = self._base.do_repr(
             _circular_refs=_circular_refs, _force_do=_force_do
@@ -885,8 +863,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_REPR_CR_DEPTH",
         )
@@ -1035,20 +1011,14 @@ class Power(BasicClass):
         if not _force_do:
             assert self._force_do_hit_count == 0
             to_return, _circular_refs = self._circular_reference_dict(
-                "do not pass `_circular_refs` in wrong type "
-                "when calling this method",
                 _circular_refs=_circular_refs,
                 constant_get_key="MAX_CALCULATION_CR_DEPTH",
             )
             if to_return:
                 return 1.0
-        elif self._force_do_hit_count > self._constants(
-            "MAX_FORCE_DO_HIT_COUNT", "<13"
-        ):
-            self._force_do_hit_count = 0
+
+        elif self._force_do_helper():
             return 1.0
-        else:
-            self._force_do_hit_count += 1
 
         base = self._base.do_float(
             _circular_refs=_circular_refs,
@@ -1093,8 +1063,6 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1134,8 +1102,7 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `+` instead",
+            "+",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1200,8 +1167,7 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `*` instead",
+            "*",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1278,8 +1244,7 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1348,8 +1313,7 @@ class Power(BasicClass):
         """
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -1487,8 +1451,6 @@ class Power(BasicClass):
             return False
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_COMPARISON_CR_DEPTH",
         )

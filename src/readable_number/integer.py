@@ -276,8 +276,7 @@ class Integer(BasicClass, int):
             return Fraction.from_float(float(self) + other)
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `+` instead",
+            "+",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -311,8 +310,7 @@ class Integer(BasicClass, int):
             return Fraction.from_float(float(self) * other)
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `*` instead",
+            "*",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -352,8 +350,7 @@ class Integer(BasicClass, int):
             return Fraction(self, other)
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
@@ -393,8 +390,7 @@ class Integer(BasicClass, int):
             return Fraction(other, self)
 
         to_return, _circular_refs = self._circular_reference_dict(
-            "do not pass `_circular_refs` in wrong type "
-            "when calling this method, use `/` instead",
+            "/",
             _circular_refs=_circular_refs,
             constant_get_key="MAX_CALCULATION_CR_DEPTH",
         )
