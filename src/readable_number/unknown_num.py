@@ -5,7 +5,7 @@ The definition of the `UnknownNum` class, which is used to
 represent an unknown number.
 """
 
-from enum import StrEnum, auto
+from enum import Enum, auto
 from typing import Any, Generator, Optional, Sequence, Union
 from weakref import WeakValueDictionary
 
@@ -21,7 +21,7 @@ from .integer import Integer
 # pylint: disable=import-outside-toplevel, protected-access
 
 
-class UnknownShowMode(StrEnum):
+class UnknownShowMode(Enum):
     """
     The mode to show the unknown number.
     """

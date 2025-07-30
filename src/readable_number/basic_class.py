@@ -5,7 +5,7 @@ The definition of basic class of the child classes.
 """
 
 from abc import ABC, ABCMeta, abstractmethod
-from enum import StrEnum, auto
+from enum import Enum, auto
 from hashlib import sha256
 from itertools import tee
 from typing import (
@@ -1018,7 +1018,7 @@ ItemsSupportsTypes = Iterable[CalculationSupportsTypes]
 PropertyTypes = list[NewTypes]
 
 
-class OrderMode(StrEnum):
+class OrderMode(Enum):
     """
     The order mode of the monomial.
     """
