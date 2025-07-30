@@ -242,7 +242,9 @@ class Monomial(Container):
             case int(x) | Integer(x):
                 return cls.from_int(item, *args, **kwargs)
             case Monomial(items=items):
-                return item.copy(*args, **kwargs)
+                ret = item.copy(*args, **kwargs)
+                assert isinstance(ret, cls)
+                return ret
 
             case other:
                 raise TypeError(
@@ -660,7 +662,10 @@ class Monomial(Container):
         res = self._do_abs_helper(_circular_refs=_circular_refs)
         if res is None:
             return Monomial([1])
-        return res.copy(try_deep_copy=True)
+
+        res = res.copy(try_deep_copy=True)
+        assert isinstance(res, Monomial)
+        return res
 
     def do_add(
         self,
@@ -791,7 +796,9 @@ class Monomial(Container):
         if self.simplify_after_calculation:
             res.simplify()
 
-        return res.copy(try_deep_copy=True)
+        res = res.copy(try_deep_copy=True)
+        assert isinstance(res, Monomial)
+        return res
 
     def do_truediv(
         self,
