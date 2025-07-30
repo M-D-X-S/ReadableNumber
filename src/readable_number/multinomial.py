@@ -85,7 +85,9 @@ class Multinomial(Container):
             case int(x) | Integer(x):
                 return cls.from_int(item, *args, **kwargs)
             case Multinomial(items=items):
-                return item.copy(*args, **kwargs)
+                ret = item.copy(*args, **kwargs)
+                assert isinstance(ret, cls)
+                return ret
 
             case other:
                 raise TypeError(
@@ -348,7 +350,10 @@ class Multinomial(Container):
         res = self._do_abs_helper(_circular_refs=_circular_refs)
         if res is None:
             return Multinomial([0])
-        return res.copy(try_deep_copy=True)
+
+        res = res.copy(try_deep_copy=True)
+        assert isinstance(res, Multinomial)
+        return res
 
     def do_add(
         self,
@@ -421,7 +426,9 @@ class Multinomial(Container):
         if self.simplify_after_calculation:
             res.simplify()
 
-        return res.copy(try_deep_copy=True)
+        res = res.copy(try_deep_copy=True)
+        assert isinstance(res, Multinomial)
+        return res
 
     def do_mul(
         self,

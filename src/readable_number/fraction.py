@@ -4,7 +4,7 @@ Fraction
 The definition of the `Fraction` class.
 """
 
-from enum import StrEnum, auto
+from enum import Enum, auto
 from math import isnan, isinf
 from typing import Any, Generator, Optional, Sequence, Union
 
@@ -20,7 +20,7 @@ from .integer import Integer
 # pylint: disable=import-outside-toplevel, protected-access
 
 
-class LatexMode(StrEnum):
+class LatexMode(Enum):
     """
     The Latex mode for the `to_latex` method.
     """

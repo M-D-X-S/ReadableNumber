@@ -5,7 +5,7 @@ The definition of basic class of the child classes.
 """
 
 from abc import ABC, ABCMeta, abstractmethod
-from enum import StrEnum, auto
+from enum import Enum, auto
 from hashlib import sha256
 from itertools import tee
 from typing import (
@@ -14,7 +14,6 @@ from typing import (
     Generator,
     Iterable,
     Optional,
-    Self,
     Sequence,
     Union,
 )
@@ -1019,7 +1018,7 @@ ItemsSupportsTypes = Iterable[CalculationSupportsTypes]
 PropertyTypes = list[NewTypes]
 
 
-class OrderMode(StrEnum):
+class OrderMode(Enum):
     """
     The order mode of the monomial.
     """
@@ -1595,7 +1594,7 @@ class Container(BasicClass, ABC, metaclass=IsinstanceChecker):
         try_deep_copy: bool = False,
         force_deep_copy: bool = False,
         _circular_refs: Optional[dict[NewTypes, int]] = None,
-    ) -> Self:
+    ) -> "Container":
         """
         Creates a copy of the Container object.
         The parameter `force_deep_copy` is only effective when
@@ -1669,7 +1668,7 @@ class Container(BasicClass, ABC, metaclass=IsinstanceChecker):
         self,
         *,
         _circular_refs: Optional[dict[NewTypes, int]] = None,
-    ) -> Optional[Self]:
+    ) -> Optional["Container"]:
         """
         A helper function to calculate the absolute value of
         a Container object.
